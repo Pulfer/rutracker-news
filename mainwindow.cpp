@@ -2,7 +2,7 @@
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
-    setWindowTitle("Rutracker.org news 0.1");
+    setWindowTitle("Rutracker.org news 0.3");
     setMinimumSize(800, 600);
     basicScreen = new QWidget;
     setCentralWidget(basicScreen);
@@ -117,10 +117,11 @@ void MainWindow::displayTopics(bool done)
     getTopicsButton->setEnabled(true);
     downloadButton->setEnabled(true);
     topicsListWidget->setEnabled(true);
+    topicsListWidget->clear();
+    topicsListWidget->setCurrentRow(-1);
     if (done)
     {
         statusLabel->setText(QString::fromUtf8("Готово. Отобрано раздач: ") + QString::number(fetcher.count()));
-        topicsListWidget->clear();
         for (int i = 0; i < fetcher.count(); i++)
         {
             topicsListWidget->addItem(fetcher.at(i).title);
@@ -131,79 +132,89 @@ void MainWindow::displayTopics(bool done)
 
 void MainWindow::showSummary(int topicIndex)
 {
-    QImage image;
-    image.loadFromData(fetcher.at(topicIndex).image);
-    imageLabel->setPixmap(QPixmap::fromImage(image).scaled(250, 300, Qt::KeepAspectRatio, Qt::SmoothTransformation));
-    QString summary;
-
-    fullTitleLabel->setText("<h2>" + fetcher.at(topicIndex).fullTitle + "</h2>");
-
-    summary = QString::fromUtf8("<b>Название:</b> ") + fetcher.at(topicIndex).title;
-    if (!fetcher.at(topicIndex).season.isEmpty())
+    if (topicIndex < 0)
     {
-        summary = summary + QString::fromUtf8("<br><b>Сезон:</b> ") + fetcher.at(topicIndex).season;
-    }
-    if (!fetcher.at(topicIndex).episodes.isEmpty())
-    {
-        summary = summary + QString::fromUtf8("<br><b>Серии:</b> ") + fetcher.at(topicIndex).episodes;
-    }
-    if (!fetcher.at(topicIndex).year.isEmpty())
-    {
-        summary = summary + QString::fromUtf8("<br><b>Год:</b> ") + fetcher.at(topicIndex).year;
-    }
-    if (!fetcher.at(topicIndex).country.isEmpty())
-    {
-        summary = summary + QString::fromUtf8("<br><b>Страна:</b> ") + fetcher.at(topicIndex).country;
-    }
-    if (!fetcher.at(topicIndex).genre.isEmpty())
-    {
-        summary = summary + QString::fromUtf8("<br><b>Жанр:</b> ") + fetcher.at(topicIndex).genre;
-    }
-    if (!fetcher.at(topicIndex).director.isEmpty())
-    {
-        summary = summary + QString::fromUtf8("<br><b>Режиссер:</b> ") + fetcher.at(topicIndex).director;
-    }
-    if (!fetcher.at(topicIndex).duration.isEmpty())
-    {
-        summary = summary + QString::fromUtf8("<br><b>Продолжительность:</b> ") + fetcher.at(topicIndex).duration;
-    }
-    if (!fetcher.at(topicIndex).translation.isEmpty())
-    {
-        summary = summary + QString::fromUtf8("<br><b>Перевод:</b> ") + fetcher.at(topicIndex).translation;
-    }
-    if (!fetcher.at(topicIndex).imdb.isEmpty())
-    {
-        summary = summary + QString::fromUtf8("<br><b>Рейтинг IMDB:</b> ") + fetcher.at(topicIndex).imdb;
-    }
-    if (!fetcher.at(topicIndex).quality.isEmpty())
-    {
-        summary = summary + QString::fromUtf8("<hr><b>Качество:</b> ") + fetcher.at(topicIndex).quality;
+        imageLabel->clear();
+        fullTitleLabel->setText(QString::fromUtf8("<h2>Ничего не выбрано</h2>"));
+        summaryLabel->setText(QString::fromUtf8("<b>Нажмите на \"Проверить обновления\"</b> "));
+        descriptionLabel->setText("");
     }
     else
     {
-        summary = summary + "<hr>";
-    }
-    if (!fetcher.at(topicIndex).format.isEmpty())
-    {
-        summary = summary + QString::fromUtf8("<br><b>Формат:</b> ") + fetcher.at(topicIndex).format;
-    }
-    if (!fetcher.at(topicIndex).video.isEmpty())
-    {
-        summary = summary + QString::fromUtf8("<br><b>Видео:</b> ") + fetcher.at(topicIndex).video;
-    }
-    if (!fetcher.at(topicIndex).audio1.isEmpty())
-    {
-        summary = summary + QString::fromUtf8("<br><b>Аудио:</b> ") + fetcher.at(topicIndex).audio1;
-    }
-    if (!fetcher.at(topicIndex).audio2.isEmpty())
-    {
-        summary = summary + QString::fromUtf8("<br><b>Аудио 2:</b> ") + fetcher.at(topicIndex).audio2;
-    }
-    summary = summary + QString::fromUtf8("<hr><b>Раздел:</b> ") + fetcher.at(topicIndex).forum;
-    summary = summary + QString::fromUtf8("<br><b>Тема:</b> <a href=\"") + fetcher.at(topicIndex).url + "\">" + fetcher.at(topicIndex).url + "</a>";
-    summaryLabel->setText(summary);
+        QImage image;
+        image.loadFromData(fetcher.at(topicIndex).image);
+        imageLabel->setPixmap(QPixmap::fromImage(image).scaled(250, 300, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+        QString summary;
 
-    descriptionLabel->setText(QString::fromUtf8("<hr><b>Описание:</b> ") + fetcher.at(topicIndex).description);
+        fullTitleLabel->setText("<h2>" + fetcher.at(topicIndex).fullTitle + "</h2>");
+
+        summary = QString::fromUtf8("<b>Название:</b> ") + fetcher.at(topicIndex).title;
+        if (!fetcher.at(topicIndex).season.isEmpty())
+        {
+            summary = summary + QString::fromUtf8("<br><b>Сезон:</b> ") + fetcher.at(topicIndex).season;
+        }
+        if (!fetcher.at(topicIndex).episodes.isEmpty())
+        {
+            summary = summary + QString::fromUtf8("<br><b>Серии:</b> ") + fetcher.at(topicIndex).episodes;
+        }
+        if (!fetcher.at(topicIndex).year.isEmpty())
+        {
+            summary = summary + QString::fromUtf8("<br><b>Год:</b> ") + fetcher.at(topicIndex).year;
+        }
+        if (!fetcher.at(topicIndex).country.isEmpty())
+        {
+            summary = summary + QString::fromUtf8("<br><b>Страна:</b> ") + fetcher.at(topicIndex).country;
+        }
+        if (!fetcher.at(topicIndex).genre.isEmpty())
+        {
+            summary = summary + QString::fromUtf8("<br><b>Жанр:</b> ") + fetcher.at(topicIndex).genre;
+        }
+        if (!fetcher.at(topicIndex).director.isEmpty())
+        {
+            summary = summary + QString::fromUtf8("<br><b>Режиссер:</b> ") + fetcher.at(topicIndex).director;
+        }
+        if (!fetcher.at(topicIndex).duration.isEmpty())
+        {
+            summary = summary + QString::fromUtf8("<br><b>Продолжительность:</b> ") + fetcher.at(topicIndex).duration;
+        }
+        if (!fetcher.at(topicIndex).translation.isEmpty())
+        {
+            summary = summary + QString::fromUtf8("<br><b>Перевод:</b> ") + fetcher.at(topicIndex).translation;
+        }
+        if (!fetcher.at(topicIndex).imdb.isEmpty())
+        {
+            summary = summary + QString::fromUtf8("<br><b>Рейтинг IMDB:</b> ") + fetcher.at(topicIndex).imdb;
+        }
+        if (!fetcher.at(topicIndex).quality.isEmpty())
+        {
+            summary = summary + QString::fromUtf8("<hr><b>Качество:</b> ") + fetcher.at(topicIndex).quality;
+        }
+        else
+        {
+            summary = summary + "<hr>";
+        }
+        if (!fetcher.at(topicIndex).format.isEmpty())
+        {
+            summary = summary + QString::fromUtf8("<br><b>Формат:</b> ") + fetcher.at(topicIndex).format;
+        }
+        if (!fetcher.at(topicIndex).video.isEmpty())
+        {
+            summary = summary + QString::fromUtf8("<br><b>Видео:</b> ") + fetcher.at(topicIndex).video;
+        }
+        if (!fetcher.at(topicIndex).audio1.isEmpty())
+        {
+            summary = summary + QString::fromUtf8("<br><b>Аудио:</b> ") + fetcher.at(topicIndex).audio1;
+        }
+        if (!fetcher.at(topicIndex).audio2.isEmpty())
+        {
+            summary = summary + QString::fromUtf8("<br><b>Аудио 2:</b> ") + fetcher.at(topicIndex).audio2;
+        }
+        summary = summary + QString::fromUtf8("<hr><b>Раздел:</b> ") + fetcher.at(topicIndex).forum;
+        summary = summary + QString::fromUtf8("<br><b>Тема:</b> <a href=\"") + fetcher.at(topicIndex).url + "\">" + fetcher.at(topicIndex).url + "</a>";
+        summaryLabel->setText(summary);
+
+        descriptionLabel->setText(QString::fromUtf8("<hr><b>Описание:</b> ") + fetcher.at(topicIndex).description);
+    }
 }
 
 MainWindow::~MainWindow()

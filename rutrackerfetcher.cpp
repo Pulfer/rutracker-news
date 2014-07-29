@@ -249,9 +249,18 @@ void RutrackerFetcher::getTopics()
 
 void RutrackerFetcher::getNextTopic()
 {
-    QNetworkRequest req(QUrl(searchList.takeFirst()));
-    qnam.get(req);
-    connect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(getTopicFinished(QNetworkReply*)));
+    if (!searchList.empty())
+    {
+        QUrl url = QUrl(searchList.takeFirst());
+        QNetworkRequest req(url);
+        qnam.get(req);
+        connect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(getTopicFinished(QNetworkReply*)));
+    }
+    else
+    {
+        emit stateChanged(QString::fromUtf8("Пустой запрос"));
+        emit finished(false);
+    }
 }
 
 void RutrackerFetcher::getTopicFinished(QNetworkReply *topicsReply)
@@ -269,12 +278,13 @@ void RutrackerFetcher::getTopicFinished(QNetworkReply *topicsReply)
         if (temp.contains(QString::fromUtf8("Результатов поиска:")))
         {
             int startPos = temp.indexOf(QString::fromUtf8("Результатов поиска: ")) + 20;
-            int endPos = temp.indexOf(" (max: 500)", startPos);
-            emit stateChanged(QString::fromUtf8("Найдено топиков: ") + temp.mid(startPos, endPos - startPos));
+            int endPos = temp.indexOf(" <span class=\"normal\">(max: 500)", startPos);
+            int topicsFound = temp.mid(startPos, endPos - startPos).toInt();
+            emit stateChanged(QString::fromUtf8("Найдено топиков: %1").arg(topicsFound));
             if (!currentPage)
             {
-                pagesCount = temp.mid(startPos, endPos - startPos).toInt() / 50;
-                if (!(temp.mid(startPos, endPos - startPos).toInt() % 50))
+                pagesCount =  topicsFound / 50;
+                if (!(topicsFound % 50) && !(pagesCount == 0))
                 {
                     pagesCount--;
                 }
@@ -283,7 +293,10 @@ void RutrackerFetcher::getTopicFinished(QNetworkReply *topicsReply)
                     searchList << basicUrl + "&start=" + QString::number(i*50);
                 }
             }
-            startPos = temp.indexOf("search-results");
+            if (topicsFound > 0)
+                startPos = temp.indexOf("search-results");
+            else
+                startPos = 0;
             int endSearch = temp.indexOf("/search-results");
             topic tempTopic;
             while (startPos > 0)
@@ -325,6 +338,11 @@ void RutrackerFetcher::getImages()
     if (!topicsList.empty())
     {
         getNextImage();
+    }
+    else
+    {
+        emit finished(false);
+        fetching = false;
     }
 }
 
@@ -383,9 +401,9 @@ void RutrackerFetcher::getImdb()
 {
     currentTopic = 0;
     if (!topicsList.empty())
-    {
         getNextImdb();
-    }
+    else
+        emit gotImdb();
 }
 
 void RutrackerFetcher::getNextImdb()
@@ -442,9 +460,9 @@ void RutrackerFetcher::parseTopics()
 {
     currentTopic = 0;
     if (!topicsList.empty())
-    {
         parseNextTopic();
-    }
+    else
+        emit parsedTopics();
 }
 
 void RutrackerFetcher::parseNextTopic()
