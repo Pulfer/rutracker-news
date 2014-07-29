@@ -152,7 +152,7 @@ void RutrackerFetcher::fetch()
             }
             if (settings->value("anime").toBool())
             {
-                url = url + "&f[]=1389";
+                url = url + "&f[]=1389&f[]=1105";
             }
             if (settings->value("cartoons").toBool())
             {
