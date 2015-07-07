@@ -380,20 +380,32 @@ void RutrackerFetcher::getImageFinished(QNetworkReply *topicsReply)
 {
     disconnect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(getImageFinished(QNetworkReply*)));
     topicsReply->deleteLater();
+    bool needFallback = false;
     if (!topicsReply->error())
     {
         topicsList[currentTopic].image = topicsReply->readAll();
-        QFile img(imageDir.path() + "/" + QCryptographicHash::hash(QByteArray(topicsList.at(currentTopic).title.toLocal8Bit()), QCryptographicHash::Md5).toHex());
-        img.open(QIODevice::WriteOnly);
-        img.write(topicsList.at(currentTopic).image);
-        img.close();
+        /* skip 16+ and 18+ images, they are likely to be less than 20000 bytes */
+        if (topicsList.at(currentTopic).image.size() > 20000)
+        {
+            QFile img(imageDir.path() + "/" + QCryptographicHash::hash(QByteArray(topicsList.at(currentTopic).title.toLocal8Bit()), QCryptographicHash::Md5).toHex());
+            img.open(QIODevice::WriteOnly);
+            img.write(topicsList.at(currentTopic).image);
+            img.close();
+        }
+        else if (!topicsList.at(currentTopic).imageUrlFallback.isEmpty())
+        {
+            needFallback = true;
+            topicsList[currentTopic].imageUrl = topicsList.at(currentTopic).imageUrlFallback;
+            topicsList[currentTopic].imageUrlFallback.clear();
+        }
     }
     else
     {
         emit stateChanged(QString::fromUtf8("Ошибка загрузки обложки: ") + QString::number(currentTopic + 1));
         qDebug() << topicsReply->errorString();
     }
-    currentTopic++;
+    if (!needFallback)
+        currentTopic++;
     getNextImage();
 }
 
@@ -758,7 +770,7 @@ void RutrackerFetcher::parseForum(QString postBody, parser postParser)
         {
             startPos = startPos + postParser.imageUrlBegin.length();
             endPos = postBody.indexOf(postParser.imageUrlEnd, startPos);
-            topicsList[currentTopic].imageUrl = postBody.mid(startPos, endPos - startPos);
+            topicsList[currentTopic].imageUrlFallback = postBody.mid(startPos, endPos - startPos);
         }
     }
 

@@ -20,6 +20,7 @@ struct topic {
     QString translation;
     QString director;
     QString imageUrl;
+    QString imageUrlFallback;
     QString quality;
     QString format;
     QString video;
