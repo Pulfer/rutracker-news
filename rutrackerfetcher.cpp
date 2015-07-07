@@ -750,6 +750,18 @@ void RutrackerFetcher::parseForum(QString postBody, parser postParser)
         topicsList[currentTopic].imageUrl = postBody.mid(startPos, endPos - startPos);
     }
 
+    /* fallback image url (skip 16+ and 18+ images) */
+    if (!topicsList[currentTopic].imageUrl.isEmpty())
+    {
+        startPos = postBody.indexOf(postParser.imageUrlBegin, endPos + postParser.imageUrlEnd.length());
+        if (startPos > 0)
+        {
+            startPos = startPos + postParser.imageUrlBegin.length();
+            endPos = postBody.indexOf(postParser.imageUrlEnd, startPos);
+            topicsList[currentTopic].imageUrl = postBody.mid(startPos, endPos - startPos);
+        }
+    }
+
     /* quality */
     startPos = postBody.indexOf(postParser.qualityBegin);
     if (startPos > 0)
