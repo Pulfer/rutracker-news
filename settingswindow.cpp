@@ -33,7 +33,7 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QDialog(parent)
     cartoonsLayout = new QVBoxLayout(cartoonsGroup);
     documentaryLayout = new QVBoxLayout(documentaryGroup);
 
-    latestMoviesCheck = new QCheckBox(QString::fromUtf8("Новейшие фильмы (2011 - 2014)"));
+    latestMoviesCheck = new QCheckBox(QString::fromUtf8("Новейшие фильмы (2011 - 2015)"));
     newMoviesCheck = new QCheckBox(QString::fromUtf8("Зарубежные фильмы (до 2010)"));
     oldMoviesCheck = new QCheckBox(QString::fromUtf8("Классика зарубежного кино"));
     artHouseCheck = new QCheckBox(QString::fromUtf8("Арт-хаус и авторское кино"));
