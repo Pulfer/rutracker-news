@@ -48,7 +48,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     mainScreen->addWidget(getTopicsWidget);
     mainScreen->addWidget(viewTopicWidget);
     mainScreen->setStretchFactor(0, 2);
-    mainScreen->setStretchFactor(1, 5);
+    mainScreen->setStretchFactor(1, 6);
 
     fullTitleLabel = new QLabel;
     fullTitleLabel->setText(QString::fromUtf8("<h2>Ничего не выбрано</h2>"));
@@ -64,6 +64,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     descriptionLabel->setWordWrap(true);
 
     imageLabel = new QLabel;
+    imageLabel->setAlignment(Qt::AlignRight | Qt::AlignTop);
 
     topicSummaryLayout->addWidget(fullTitleLabel); 
 
