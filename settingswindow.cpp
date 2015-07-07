@@ -18,11 +18,9 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QDialog(parent)
     buttonsLayout->addWidget(okButton);
     buttonsLayout->addWidget(cancelButton);
     forumsScreen = new QWidget;
-    filtersScreen = new QWidget;
     loginScreen = new QWidget;
 
     tabbedWidget->addTab(forumsScreen, QString::fromUtf8("Разделы"));
-    tabbedWidget->addTab(filtersScreen, QString::fromUtf8("Опции"));
     tabbedWidget->addTab(loginScreen, QString::fromUtf8("Аккаунт"));
 
     forumsLayout = new QHBoxLayout(forumsScreen);

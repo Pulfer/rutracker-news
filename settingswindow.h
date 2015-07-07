@@ -27,7 +27,6 @@ public:
 private:
     QTabWidget *tabbedWidget;
     QWidget *forumsScreen;
-    QWidget *filtersScreen;
     QWidget *loginScreen;
     QVBoxLayout *mainLayout;
     QHBoxLayout *buttonsLayout;
