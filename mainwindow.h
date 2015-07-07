@@ -29,7 +29,6 @@ private:
     QHBoxLayout *getTopicsHLayout;
 
     QVBoxLayout *viewTopicVLayout;
-    QHBoxLayout *viewTopicHLayout;
 
     QVBoxLayout *topicSummaryLayout;
 
@@ -39,7 +38,6 @@ private:
 
     QListWidget *topicsListWidget;
     QPushButton *getTopicsButton;
-    QPushButton *downloadButton;
 
     QLabel *statusLabel;
 

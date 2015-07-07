@@ -42,14 +42,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     summaryScrollArea->setWidget(topicSummaryWidget);
     summaryScrollArea->setWidgetResizable(true);
 
-    downloadButton = new QPushButton(QString::fromUtf8("Скачать торрент"));
-
     viewTopicVLayout = new QVBoxLayout(viewTopicWidget);
-    viewTopicHLayout = new QHBoxLayout;
-//    Not yet
-    viewTopicHLayout->addWidget(downloadButton);
     viewTopicVLayout->addWidget(summaryScrollArea);
-    viewTopicVLayout->addLayout(viewTopicHLayout);
 
     mainScreen->addWidget(getTopicsWidget);
     mainScreen->addWidget(viewTopicWidget);
@@ -106,7 +100,6 @@ void MainWindow::showSettings()
 void MainWindow::getTopics()
 {
     getTopicsButton->setEnabled(false);
-    downloadButton->setEnabled(false);
     topicsListWidget->setEnabled(false);
     fetcher.setMaxTopics(40);
     fetcher.fetch();
@@ -115,7 +108,6 @@ void MainWindow::getTopics()
 void MainWindow::displayTopics(bool done)
 {
     getTopicsButton->setEnabled(true);
-    downloadButton->setEnabled(true);
     topicsListWidget->setEnabled(true);
     topicsListWidget->clear();
     topicsListWidget->setCurrentRow(-1);
