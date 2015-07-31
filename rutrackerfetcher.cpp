@@ -588,6 +588,9 @@ QString RutrackerFetcher::removeSpans(QString stringToFix)
     stringToFix.replace(QString::fromUtf8("Аудио RUS:"), QString::fromUtf8("Аудио: [RUS]"));
     stringToFix.replace(QString::fromUtf8("Аудио RUS 1:"), QString::fromUtf8("Аудио: [RUS]"));
     stringToFix.replace(QString::fromUtf8("Аудио RUS 2:"), QString::fromUtf8("Аудио: [RUS]"));
+    stringToFix.replace(QString::fromUtf8("О фильме:"), QString::fromUtf8("Описание:"));
+    if (!stringToFix.contains(QString::fromUtf8("Описание:")) && stringToFix.contains(QString::fromUtf8("Описание")))
+        stringToFix.replace(QString::fromUtf8("Описание"), QString::fromUtf8("Описание:"));
 
     stringToFix.remove(QRegExp("&[^;]*;"));
     stringToFix = stringToFix.simplified();
