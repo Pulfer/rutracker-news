@@ -19,9 +19,11 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QDialog(parent)
     buttonsLayout->addWidget(cancelButton);
     forumsScreen = new QWidget;
     loginScreen = new QWidget;
+    proxyScreen = new QWidget;
 
     tabbedWidget->addTab(forumsScreen, QString::fromUtf8("Разделы"));
     tabbedWidget->addTab(loginScreen, QString::fromUtf8("Аккаунт"));
+    tabbedWidget->addTab(proxyScreen, QString::fromUtf8("Прокси"));
 
     forumsLayout = new QHBoxLayout(forumsScreen);
     moviesGroup = new QGroupBox(QString::fromUtf8("Художественные"));
@@ -87,10 +89,49 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QDialog(parent)
     loginLayout->addRow(QString::fromUtf8("Пользователь"), loginEdit);
     loginLayout->addRow(QString::fromUtf8("Пароль"), passwordEdit);
 
-    connect(okButton, SIGNAL(clicked()), this, SLOT(saveSettings()));
+    proxyLayout = new QFormLayout(proxyScreen);
+    proxyCheck = new QCheckBox;
+    proxyUrlEdit = new QLineEdit;
+    proxyPortBox = new QSpinBox;
+    proxyPortBox->setMaximum(65535);
+    proxyTypeBox = new QComboBox;
+    proxyTypeBox->addItem("SOCKS 5");
+    proxyTypeBox->addItem("HTTP");
+    proxyLoginEdit = new QLineEdit;
+    proxyPasswordEdit = new QLineEdit;
+    proxyPasswordEdit->setEchoMode(QLineEdit::PasswordEchoOnEdit);
+    proxyLayout->addRow(QString::fromUtf8("Прокси для обхода блокировки:"), proxyCheck);
+    proxyLayout->addRow(QString::fromUtf8("Адрес"), proxyUrlEdit);
+    proxyLayout->addRow(QString::fromUtf8("Порт"), proxyPortBox);
+    proxyLayout->addRow(QString::fromUtf8("Тип"), proxyTypeBox);
+    proxyLayout->addRow(QString::fromUtf8("Логин"), proxyLoginEdit);
+    proxyLayout->addRow(QString::fromUtf8("Пароль"), proxyPasswordEdit);
+
+    connect(proxyCheck, SIGNAL(stateChanged(int)), this, SLOT(toggleProxy(int)));
     connect(cancelButton, SIGNAL(clicked()), this, SLOT(reject()));
 
+    connect(okButton, SIGNAL(clicked()), this, SLOT(saveSettings()));
+
     settings = new QSettings(QSettings::IniFormat, QSettings::UserScope, "MIB", "rutracker-news");
+}
+
+void SettingsWindow::toggleProxy(int state) {
+    if (state)
+    {
+        proxyUrlEdit->setEnabled(true);
+        proxyPortBox->setEnabled(true);
+        proxyTypeBox->setEnabled(true);
+        proxyLoginEdit->setEnabled(true);
+        proxyPasswordEdit->setEnabled(true);
+    }
+    else
+    {
+        proxyUrlEdit->setEnabled(false);
+        proxyPortBox->setEnabled(false);
+        proxyTypeBox->setEnabled(false);
+        proxyLoginEdit->setEnabled(false);
+        proxyPasswordEdit->setEnabled(false);
+    }
 }
 
 void SettingsWindow::showEvent(QShowEvent *event)
@@ -98,6 +139,13 @@ void SettingsWindow::showEvent(QShowEvent *event)
     /* read settings */
     loginEdit->setText(settings->value("login").toString());
     passwordEdit->setText(settings->value("password").toString());
+    proxyCheck->setChecked(settings->value("use-proxy").toBool());
+    proxyUrlEdit->setText(settings->value("proxy-url").toString());
+    proxyPortBox->setValue(settings->value("proxy-port").toInt());
+    proxyTypeBox->setCurrentIndex(proxyTypeBox->findText(settings->value("proxy-type").toString()));
+    proxyLoginEdit->setText(settings->value("proxy-login").toString());
+    proxyPasswordEdit->setText(settings->value("proxy-password").toString());
+    toggleProxy(proxyCheck->checkState());
     latestMoviesCheck->setChecked(settings->value("latest-movies").toBool());
     newMoviesCheck->setChecked(settings->value("new-movies").toBool());
     oldMoviesCheck->setChecked(settings->value("old-movies").toBool());
@@ -122,6 +170,12 @@ void SettingsWindow::saveSettings()
 {
     settings->setValue("login", loginEdit->text());
     settings->setValue("password", passwordEdit->text());
+    settings->setValue("use-proxy", proxyCheck->isChecked());
+    settings->setValue("proxy-url", proxyUrlEdit->text());
+    settings->setValue("proxy-port", proxyPortBox->value());
+    settings->setValue("proxy-type", proxyTypeBox->currentText());
+    settings->setValue("proxy-login", proxyLoginEdit->text());
+    settings->setValue("proxy-password", proxyPasswordEdit->text());
     settings->setValue("latest-movies", latestMoviesCheck->isChecked());
     settings->setValue("new-movies", newMoviesCheck->isChecked());
     settings->setValue("old-movies", oldMoviesCheck->isChecked());

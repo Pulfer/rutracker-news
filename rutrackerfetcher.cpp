@@ -205,6 +205,31 @@ void RutrackerFetcher::fetch()
 void RutrackerFetcher::login()
 {
     emit stateChanged(QString::fromUtf8("Логинимся"));
+    if (settings->value("use-proxy").toBool())
+    {
+        QNetworkProxy proxy;
+        if (settings->value("proxy-type").toString() == "HTTP")
+        {
+            proxy.setType(QNetworkProxy::HttpProxy);
+        }
+        else
+        {
+            proxy.setType(QNetworkProxy::Socks5Proxy);
+        }
+        proxy.setHostName(settings->value("proxy-url").toString());
+        proxy.setPort(settings->value("proxy-port").toInt());
+        QString proxyLogin = settings->value("proxy-login").toString();
+        if (!proxyLogin.isEmpty())
+        {
+            proxy.setUser(proxyLogin);
+        }
+        QString proxyPassword = settings->value("proxy-password").toString();
+        if (!proxyPassword.isEmpty())
+        {
+            proxy.setPassword(proxyPassword);
+        }
+        QNetworkProxy::setApplicationProxy(proxy);
+    }
     qnam.setCookieJar(new QNetworkCookieJar);
     QNetworkRequest loginRequest(QUrl("http://login.rutracker.org/forum/login.php"));
     loginRequest.setHeader(QNetworkRequest::ContentTypeHeader,"application/x-www-form-urlencoded");
@@ -411,6 +436,11 @@ void RutrackerFetcher::getImageFinished(QNetworkReply *topicsReply)
 
 void RutrackerFetcher::getImdb()
 {
+    /* don't touch proxy settings unless we use enable it in options */
+    if (settings->value("use-proxy").toBool())
+    {
+        QNetworkProxy::setApplicationProxy(QNetworkProxy::NoProxy);
+    }
     currentTopic = 0;
     if (!topicsList.empty())
         getNextImdb();

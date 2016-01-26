@@ -2,6 +2,7 @@
 #define SETTINGSWINDOW_H
 
 #include <QCheckBox>
+#include <QComboBox>
 #include <QDialog>
 #include <QFormLayout>
 #include <QGroupBox>
@@ -11,6 +12,7 @@
 #include <QPushButton>
 #include <QScrollArea>
 #include <QSettings>
+#include <QSpinBox>
 #include <QSplitter>
 #include <QStackedLayout>
 #include <QTabWidget>
@@ -28,6 +30,7 @@ private:
     QTabWidget *tabbedWidget;
     QWidget *forumsScreen;
     QWidget *loginScreen;
+    QWidget *proxyScreen;
     QVBoxLayout *mainLayout;
     QHBoxLayout *buttonsLayout;
     QPushButton *okButton;
@@ -65,6 +68,15 @@ private:
     QFormLayout *loginLayout;
     QLineEdit *loginEdit;
     QLineEdit *passwordEdit;
+
+    QFormLayout *proxyLayout;
+    QCheckBox *proxyCheck;
+    QLineEdit *proxyUrlEdit;
+    QSpinBox *proxyPortBox;
+    QComboBox *proxyTypeBox;
+    QLineEdit *proxyLoginEdit;
+    QLineEdit *proxyPasswordEdit;
+
     QSettings *settings;
 
 protected:
@@ -73,6 +85,7 @@ protected:
 signals:
 
 private slots:
+    void toggleProxy(int state);
     void saveSettings();
 
 };
