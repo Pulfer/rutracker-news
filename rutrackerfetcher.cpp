@@ -231,7 +231,7 @@ void RutrackerFetcher::login()
         QNetworkProxy::setApplicationProxy(proxy);
     }
     qnam.setCookieJar(new QNetworkCookieJar);
-    QNetworkRequest loginRequest(QUrl("http://login.rutracker.org/forum/login.php"));
+    QNetworkRequest loginRequest(QUrl("http://rutracker.org/forum/login.php"));
     loginRequest.setHeader(QNetworkRequest::ContentTypeHeader,"application/x-www-form-urlencoded");
     QByteArray postData;
     postData.append("login_username=" + accountLogin);
@@ -259,7 +259,7 @@ void RutrackerFetcher::loginFinished(QNetworkReply *loginReply)
     }
     else
     {
-          emit stateChanged(QString::fromUtf8("Неизвестная ошибка при входе"));
+            emit stateChanged(QString::fromUtf8("Неизвестная ошибка при входе"));
     }
     disconnect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(loginFinished(QNetworkReply*)));
 }
