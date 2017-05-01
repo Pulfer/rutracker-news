@@ -536,9 +536,10 @@ void RutrackerFetcher::parseTopicFinished(QNetworkReply *topicsReply)
         int endPos = temp.indexOf("</title>", startPos);
         topicsList[currentTopic].fullTitle = temp.mid(startPos, endPos - startPos);
         topicsList[currentTopic].fullTitle.remove(" :: RuTracker.org");
-        startPos = temp.indexOf(QString::fromUtf8("Список форумов rutracker.org"));
-        startPos = temp.indexOf(QString::fromUtf8("<a href"), startPos);
-        endPos = temp.indexOf(QString::fromUtf8("</td>"), startPos);
+        startPos = temp.indexOf(QString::fromUtf8("RuTracker.org &raquo; "));
+        startPos = temp.indexOf(QString::fromUtf8("&raquo;"), startPos);
+        startPos = temp.indexOf(QString::fromUtf8(" "), startPos);
+        endPos = temp.indexOf(QString::fromUtf8("&raquo; Скачать"), startPos);
         topicsList[currentTopic].forum = fixString(temp.mid(startPos, endPos - startPos));
         startPos = temp.indexOf(QString::fromUtf8("<div class=\"post_body\""));
         endPos = temp.indexOf(QString::fromUtf8("<!--/post_body-->"));
