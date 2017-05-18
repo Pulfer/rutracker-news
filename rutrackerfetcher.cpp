@@ -50,7 +50,7 @@ void qWait(int ms)
 void RutrackerFetcher::setupParsers()
 {
     parser1389.forumNumber = 1389;
-    parser1389.sectionEnd = "<br />";
+    parser1389.sectionEnd = "<br>";
     parser1389.yearBegin = QString::fromUtf8("!section!Год выпуска:");
     parser1389.countryBegin = QString::fromUtf8("!section!Страна:");
     parser1389.genreBegin = QString::fromUtf8("!section!Жанр:");
@@ -557,7 +557,7 @@ void RutrackerFetcher::parseTopicFinished(QNetworkReply *topicsReply)
 
 QString RutrackerFetcher::fixString(QString stringToFix)
 {
-    stringToFix.replace("<br />", " ");
+    stringToFix.replace("<br>", " ");
     stringToFix.replace("&raquo;", ">");
     stringToFix.replace("&nbsp;", " ");
     stringToFix.remove(QRegExp("<[^>]*>"));
@@ -570,24 +570,25 @@ QString RutrackerFetcher::fixString(QString stringToFix)
 QString RutrackerFetcher::removeSpans(QString stringToFix)
 {
     stringToFix.replace("<span class=\"post-b\">", "!section!");
-    stringToFix.replace("<span class=\"post-hr\">", "<br />");
+    stringToFix.replace("<span class=\"post-hr\">", "<br>");
+    stringToFix.replace("<hr class=\"post-hr\">", "<br>");
     stringToFix.replace("<var class=\"postImg postImgAligned img-right\" title=\"", "!image!");
     stringToFix.replace("<var class=\"postImg postImgAligned img-left\" title=\"", "!image!");
-    stringToFix.replace("</div>", "<br />");
+    stringToFix.replace("</div>", "<br>");
     stringToFix.remove("<ul>");
     stringToFix.remove("<li>");
     stringToFix.remove("</li>");
-    stringToFix.replace("</ul>", "<br />");
+    stringToFix.replace("</ul>", "<br>");
 
-    stringToFix.replace("<span class=\"post-align\" style=\"text-align: center;\">", "<br />");
+    stringToFix.replace("<span class=\"post-align\" style=\"text-align: center;\">", "<br>");
     stringToFix.remove(QRegExp("<span[^>]*>"));
     stringToFix.remove("</span>");
 
-    stringToFix.replace("/ !section!", "<br /> !section!");
-    stringToFix.replace("| !section!", "<br /> !section!");
-    stringToFix.replace(", !section!", "<br /> !section!");
+    stringToFix.replace("/ !section!", "<br> !section!");
+    stringToFix.replace("| !section!", "<br> !section!");
+    stringToFix.replace(", !section!", "<br> !section!");
 
-    stringToFix.replace("<div class=\"sp-wrap\">", "!section!<br />");
+    stringToFix.replace("<div class=\"sp-wrap\">", "!section!<br>");
 
     /* hacks */
     stringToFix.replace(QString::fromUtf8("Год:"), QString::fromUtf8("Год выпуска:"));
@@ -596,11 +597,11 @@ QString RutrackerFetcher::removeSpans(QString stringToFix)
     stringToFix.replace(QString::fromUtf8("Качество :"), QString::fromUtf8("Качество:"));
     stringToFix.replace(QString::fromUtf8("Контейнер:"), QString::fromUtf8("Формат:"));
     stringToFix.replace(QString::fromUtf8("Формат видео"), QString::fromUtf8("Формат"));
-    stringToFix.replace(QString::fromUtf8("/ Тип видео:"), QString::fromUtf8("<br /> !section!Тип видео:"));
-    stringToFix.replace(QString::fromUtf8("| Тип видео:"), QString::fromUtf8("<br /> !section!Тип видео:"));
-    stringToFix.replace(QString::fromUtf8("/ Формат:"), QString::fromUtf8("<br /> !section!Формат:"));
-    stringToFix.replace(QString::fromUtf8("| Формат:"), QString::fromUtf8("<br /> !section!Формат:"));
-    stringToFix.replace(QString::fromUtf8(", Формат:"), QString::fromUtf8("<br /> !section!Формат:"));
+    stringToFix.replace(QString::fromUtf8("/ Тип видео:"), QString::fromUtf8("<br> !section!Тип видео:"));
+    stringToFix.replace(QString::fromUtf8("| Тип видео:"), QString::fromUtf8("<br> !section!Тип видео:"));
+    stringToFix.replace(QString::fromUtf8("/ Формат:"), QString::fromUtf8("<br> !section!Формат:"));
+    stringToFix.replace(QString::fromUtf8("| Формат:"), QString::fromUtf8("<br> !section!Формат:"));
+    stringToFix.replace(QString::fromUtf8(", Формат:"), QString::fromUtf8("<br> !section!Формат:"));
     stringToFix.replace(QString::fromUtf8("Video"), QString::fromUtf8("Видео"));
     stringToFix.replace(QString::fromUtf8("Audio"), QString::fromUtf8("Аудио"));
     stringToFix.replace(QString::fromUtf8("Аудио 1:"), QString::fromUtf8("Аудио:"));
