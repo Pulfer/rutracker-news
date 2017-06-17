@@ -39,6 +39,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     topicSummaryWidget = new QWidget;
     topicSummaryLayout = new QVBoxLayout(topicSummaryWidget);
     topicSummarySubHLayout = new QHBoxLayout;
+    topicSummarySubVLayout = new QVBoxLayout;
+    ratingsLayout = new QHBoxLayout;
     summaryScrollArea->setWidget(topicSummaryWidget);
     summaryScrollArea->setWidgetResizable(true);
 
@@ -60,18 +62,41 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     summaryLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
     summaryLabel->setAlignment(Qt::AlignTop);
 
+    summaryExtraLabel = new QLabel;
+    summaryExtraLabel->setText("");
+    summaryExtraLabel->setWordWrap(true);
+    summaryExtraLabel->setOpenExternalLinks(true);
+    summaryExtraLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
+    summaryExtraLabel->setAlignment(Qt::AlignTop);
+
     descriptionLabel = new QLabel;
     descriptionLabel->setWordWrap(true);
 
     imageLabel = new QLabel;
     imageLabel->setAlignment(Qt::AlignRight | Qt::AlignTop);
 
-    topicSummaryLayout->addWidget(fullTitleLabel); 
+    imdbLabel = new QLabel;
+    imdbLabel->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+    kinopoiskLabel = new QLabel;
+    kinopoiskLabel->setAlignment(Qt::AlignLeft | Qt::AlignTop);
+
+    topicSummaryLayout->addWidget(fullTitleLabel);
 
     topicSummaryLayout->addLayout(topicSummarySubHLayout);
-    topicSummarySubHLayout->addWidget(summaryLabel);
+    topicSummarySubHLayout->addLayout(topicSummarySubVLayout);
     topicSummarySubHLayout->addWidget(imageLabel);
     topicSummarySubHLayout->setStretch(0, 1);
+
+    topicSummarySubVLayout->addWidget(summaryLabel);
+    topicSummarySubVLayout->addLayout(ratingsLayout);
+    topicSummarySubVLayout->addWidget(summaryExtraLabel);
+    topicSummarySubVLayout->addStretch(1);
+
+    ratingsLayout->setSpacing(2);
+    ratingsLayout->addWidget(kinopoiskLabel);
+    ratingsLayout->addWidget(imdbLabel);
+    ratingsLayout->addStretch(1);
 
     topicSummaryLayout->addWidget(descriptionLabel);
 
@@ -128,8 +153,11 @@ void MainWindow::showSummary(int topicIndex)
     if (topicIndex < 0)
     {
         imageLabel->clear();
+        imdbLabel->clear();
+        kinopoiskLabel->clear();
         fullTitleLabel->setText(QString::fromUtf8("<h2>Ничего не выбрано</h2>"));
         summaryLabel->setText(QString::fromUtf8("<b>Нажмите на \"Проверить обновления\"</b> "));
+        summaryExtraLabel->setText("");
         descriptionLabel->setText("");
     }
     else
@@ -137,7 +165,35 @@ void MainWindow::showSummary(int topicIndex)
         QImage image;
         image.loadFromData(fetcher.at(topicIndex).image);
         imageLabel->setPixmap(QPixmap::fromImage(image).scaled(250, 300, Qt::KeepAspectRatio, Qt::SmoothTransformation));
+
+        QImage imdbImage;
+        imdbImage.loadFromData(fetcher.at(topicIndex).imdbImage);
+        if (!imdbImage.isNull())
+        {
+            imdbLabel->setFixedSize(QPixmap::fromImage(imdbImage).size());
+            imdbLabel->setPixmap(QPixmap::fromImage(imdbImage));
+        }
+        else
+        {
+            imdbLabel->clear();
+            imdbLabel->setFixedSize(0,0);
+        }
+
+        QImage kinopoiskImage;
+        kinopoiskImage.loadFromData(fetcher.at(topicIndex).kinopoiskImage);
+        if (!kinopoiskImage.isNull())
+        {
+            kinopoiskLabel->setFixedSize(QPixmap::fromImage(kinopoiskImage).size());
+            kinopoiskLabel->setPixmap(QPixmap::fromImage(kinopoiskImage));
+        }
+        else
+        {
+            kinopoiskLabel->clear();
+            kinopoiskLabel->setFixedSize(0,0);
+        }
+
         QString summary;
+        QString summaryExtra;
 
         fullTitleLabel->setText("<h2>" + fetcher.at(topicIndex).fullTitle + "</h2>");
 
@@ -174,37 +230,39 @@ void MainWindow::showSummary(int topicIndex)
         {
             summary = summary + QString::fromUtf8("<br><b>Перевод:</b> ") + fetcher.at(topicIndex).translation;
         }
-        if (!fetcher.at(topicIndex).imdb.isEmpty())
+        if (!fetcher.at(topicIndex).omdb.isEmpty())
         {
-            summary = summary + QString::fromUtf8("<br><b>Рейтинг IMDB:</b> ") + fetcher.at(topicIndex).imdb;
+            summary = summary + QString::fromUtf8("<br><b>Рейтинг OMDB:</b> ") + fetcher.at(topicIndex).omdb;
         }
+
         if (!fetcher.at(topicIndex).quality.isEmpty())
         {
-            summary = summary + QString::fromUtf8("<hr><b>Качество:</b> ") + fetcher.at(topicIndex).quality;
+            summaryExtra = summaryExtra + QString::fromUtf8("<hr><b>Качество:</b> ") + fetcher.at(topicIndex).quality;
         }
         else
         {
-            summary = summary + "<hr>";
+            summaryExtra = summaryExtra + "<hr>";
         }
         if (!fetcher.at(topicIndex).format.isEmpty())
         {
-            summary = summary + QString::fromUtf8("<br><b>Формат:</b> ") + fetcher.at(topicIndex).format;
+            summaryExtra = summaryExtra + QString::fromUtf8("<br><b>Формат:</b> ") + fetcher.at(topicIndex).format;
         }
         if (!fetcher.at(topicIndex).video.isEmpty())
         {
-            summary = summary + QString::fromUtf8("<br><b>Видео:</b> ") + fetcher.at(topicIndex).video;
+            summaryExtra = summaryExtra + QString::fromUtf8("<br><b>Видео:</b> ") + fetcher.at(topicIndex).video;
         }
         if (!fetcher.at(topicIndex).audio1.isEmpty())
         {
-            summary = summary + QString::fromUtf8("<br><b>Аудио:</b> ") + fetcher.at(topicIndex).audio1;
+            summaryExtra = summaryExtra + QString::fromUtf8("<br><b>Аудио:</b> ") + fetcher.at(topicIndex).audio1;
         }
         if (!fetcher.at(topicIndex).audio2.isEmpty())
         {
-            summary = summary + QString::fromUtf8("<br><b>Аудио 2:</b> ") + fetcher.at(topicIndex).audio2;
+            summaryExtra = summaryExtra + QString::fromUtf8("<br><b>Аудио 2:</b> ") + fetcher.at(topicIndex).audio2;
         }
-        summary = summary + QString::fromUtf8("<hr><b>Раздел:</b> ") + fetcher.at(topicIndex).forum;
-        summary = summary + QString::fromUtf8("<br><b>Тема:</b> <a href=\"") + fetcher.at(topicIndex).url + "\">" + fetcher.at(topicIndex).url + "</a>";
+        summaryExtra = summaryExtra + QString::fromUtf8("<hr><b>Раздел:</b> ") + fetcher.at(topicIndex).forum;
+        summaryExtra = summaryExtra + QString::fromUtf8("<br><b>Тема:</b> <a href=\"") + fetcher.at(topicIndex).url + "\">" + fetcher.at(topicIndex).url + "</a>";
         summaryLabel->setText(summary);
+        summaryExtraLabel->setText(summaryExtra);
 
         descriptionLabel->setText(QString::fromUtf8("<hr><b>Описание:</b> ") + fetcher.at(topicIndex).description);
     }

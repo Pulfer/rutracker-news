@@ -21,6 +21,8 @@ struct topic {
     QString director;
     QString imageUrl;
     QString imageUrlFallback;
+    QString imdbUrl;
+    QString kinopoiskUrl;
     QString quality;
     QString format;
     QString video;
@@ -28,7 +30,9 @@ struct topic {
     QString audio2;
     QString description;
     QByteArray image;
-    QString imdb;
+    QByteArray imdbImage;
+    QByteArray kinopoiskImage;
+    QString omdb;
 };
 
 struct parser {
@@ -42,6 +46,10 @@ struct parser {
     QString directorBegin;
     QString imageUrlBegin;
     QString imageUrlEnd;
+    QString imdbUrlBegin;
+    QString imdbUrlEnd;
+    QString kinopoiskUrlBegin;
+    QString kinopoiskUrlEnd;
     QString qualityBegin;
     QString formatBegin;
     QString videoBegin;
@@ -78,6 +86,8 @@ private:
     void parseNextTopic();
     void getNextImage();
     void getNextImdb();
+    void getNextKinopoisk();
+    void getNextOmdb();
     void parseForum(QString postBody, parser postParser);
     QString fixString(QString stringToFix);
     QString fixTitle(QString stringToFix);
@@ -93,6 +103,8 @@ private:
     QString accountPassword;
 
     QDir imageDir;
+    QDir imdbDir;
+    QDir kinopoiskDir;
 
 signals:
     void stateChanged(QString newState);
@@ -100,8 +112,10 @@ signals:
     void loggedIn();
     void gotTopicList();
     void parsedTopics();
-    void gotImdb();
     void gotImages();
+    void gotImdb();
+    void gotKinopoisk();
+    void gotOmdb();
 
 private slots:
     void login();
@@ -109,11 +123,15 @@ private slots:
     void parseTopics();
     void getImages();
     void getImdb();
+    void getKinopoisk();
+    void getOmdb();
     void loginFinished(QNetworkReply*);
     void getTopicFinished(QNetworkReply *topicsReply);
     void parseTopicFinished(QNetworkReply *topicsReply);
     void getImageFinished(QNetworkReply *topicsReply);
     void getImdbFinished(QNetworkReply *topicsReply);
+    void getKinopoiskFinished(QNetworkReply *topicsReply);
+    void getOmdbFinished(QNetworkReply *topicsReply);
 };
 
 #endif // RUTRACKERFETCHER_H

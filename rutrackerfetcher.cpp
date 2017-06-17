@@ -8,13 +8,25 @@ RutrackerFetcher::RutrackerFetcher(QObject *parent) : QObject(parent)
 {
     #ifdef Q_OS_WIN
     imageDir = QDir::homePath() + "/Application Data/MIB/images/";
+    imdbDir = QDir::homePath() + "/Application Data/MIB/imdb/";
+    kinopoiskDir = QDir::homePath() + "/Application Data/MIB/kinopoisk/";
     #else
     imageDir = QDir::homePath() + "/.config/MIB/images/";
+    imdbDir = QDir::homePath() + "/.config/MIB/imdb/";
+    kinopoiskDir = QDir::homePath() + "/.config/MIB/kinopoisk/";
     #endif
 
     if (!imageDir.exists())
     {
         QDir().mkpath(imageDir.path());
+    }
+    if (!imdbDir.exists())
+    {
+        QDir().mkpath(imdbDir.path());
+    }
+    if (!kinopoiskDir.exists())
+    {
+        QDir().mkpath(kinopoiskDir.path());
     }
     maxTopics = 1000;
     fetching = false;
@@ -22,7 +34,11 @@ RutrackerFetcher::RutrackerFetcher(QObject *parent) : QObject(parent)
     settings = new QSettings(QSettings::IniFormat, QSettings::UserScope, "MIB", "rutracker-news");
     connect(this, SIGNAL(loggedIn()), this, SLOT(getTopics()));
     connect(this, SIGNAL(gotTopicList()), this, SLOT(parseTopics()));
-    connect(this, SIGNAL(parsedTopics()), this, SLOT(getImdb()));
+//  There are no free rating providers for now, so skip OMDB ratings
+//  connect(this, SIGNAL(parsedTopics()), this, SLOT(getOmdb()));
+//  connect(this, SIGNAL(gotOmdb()), this, SLOT(getImages()));
+    connect(this, SIGNAL(parsedTopics()), this, SLOT(getKinopoisk()));
+    connect(this, SIGNAL(gotKinopoisk()), this, SLOT(getImdb()));
     connect(this, SIGNAL(gotImdb()), this, SLOT(getImages()));
 }
 
@@ -59,6 +75,10 @@ void RutrackerFetcher::setupParsers()
     parser1389.directorBegin = QString::fromUtf8("!section!Режиссер:");
     parser1389.imageUrlBegin = QString::fromUtf8("!image!");
     parser1389.imageUrlEnd = QString::fromUtf8("\">");
+    parser1389.imdbUrlBegin = QString::fromUtf8("!imdb!");
+    parser1389.imdbUrlEnd = QString::fromUtf8("\">");
+    parser1389.kinopoiskUrlBegin = QString::fromUtf8("!kinopoisk!");
+    parser1389.kinopoiskUrlEnd = QString::fromUtf8("\">");
     parser1389.qualityBegin = QString::fromUtf8("!section!Качество:");
     parser1389.formatBegin = QString::fromUtf8("!section!Формат:");
     parser1389.videoBegin = QString::fromUtf8("!section!Видео:");
@@ -434,7 +454,7 @@ void RutrackerFetcher::getImageFinished(QNetworkReply *topicsReply)
     getNextImage();
 }
 
-void RutrackerFetcher::getImdb()
+void RutrackerFetcher::getOmdb()
 {
     /* don't touch proxy settings unless we use enable it in options */
     if (settings->value("use-proxy").toBool())
@@ -443,22 +463,22 @@ void RutrackerFetcher::getImdb()
     }
     currentTopic = 0;
     if (!topicsList.empty())
-        getNextImdb();
+        getNextOmdb();
     else
-        emit gotImdb();
+        emit gotOmdb();
 }
 
-void RutrackerFetcher::getNextImdb()
+void RutrackerFetcher::getNextOmdb()
 {
     if (currentTopic > count() - 1)
     {
-        emit stateChanged(QString::fromUtf8("Поиск рейтингов IMDB завершён"));
-        emit gotImdb();
+        emit stateChanged(QString::fromUtf8("Поиск рейтингов OMDB завершён"));
+        emit gotOmdb();
     }
     else
     {
         qWait(250);
-        emit stateChanged(QString::fromUtf8("Загрузка рейтинга IMDB: ") + QString::number(currentTopic + 1));
+        emit stateChanged(QString::fromUtf8("Загрузка рейтинга OMDB: ") + QString::number(currentTopic + 1));
         QString title = topicsList.at(currentTopic).title;
         title.remove(0, title.lastIndexOf("/") + 1);
         title = title.simplified();
@@ -469,13 +489,13 @@ void RutrackerFetcher::getNextImdb()
             tempUrl.setUrl("http://www.omdbapi.com/?t=" + title);
         QNetworkRequest req(tempUrl);
         qnam.get(req);
-        connect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(getImdbFinished(QNetworkReply*)));
+        connect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(getOmdbFinished(QNetworkReply*)));
     }
 }
 
-void RutrackerFetcher::getImdbFinished(QNetworkReply *topicsReply)
+void RutrackerFetcher::getOmdbFinished(QNetworkReply *topicsReply)
 {
-    disconnect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(getImdbFinished(QNetworkReply*)));
+    disconnect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(getOmdbFinished(QNetworkReply*)));
     topicsReply->deleteLater();
     if (!topicsReply->error())
     {
@@ -486,16 +506,152 @@ void RutrackerFetcher::getImdbFinished(QNetworkReply *topicsReply)
         {
             startPos = startPos + 14;
             int endPos = temp.indexOf("\"", startPos);
-            topicsList[currentTopic].imdb = temp.mid(startPos, endPos - startPos);
+            topicsList[currentTopic].omdb = temp.mid(startPos, endPos - startPos);
         }
     }
     else
     {
-        emit stateChanged(QString::fromUtf8("Ошибка загрузки рейтинга IMDB: ") + QString::number(currentTopic) + 1);
+        emit stateChanged(QString::fromUtf8("Ошибка загрузки рейтинга OMDB: ") + QString::number(currentTopic) + 1);
+        qDebug() << topicsReply->errorString();
+    }
+    currentTopic++;
+    getNextOmdb();
+}
+
+void RutrackerFetcher::getImdb()
+{
+    currentTopic = 0;
+    if (!topicsList.empty())
+    {
+        getNextImdb();
+    }
+    else
+    {
+        emit gotImdb();
+    }
+}
+
+void RutrackerFetcher::getNextImdb()
+{
+    if (currentTopic > count() - 1)
+    {
+        emit stateChanged(QString::fromUtf8("Рейтинги IMDB загружены"));
+        emit gotImdb();
+    }
+    else
+    {
+        emit stateChanged(QString::fromUtf8("Загрузка рейтинга IMDB: ") + QString::number(currentTopic + 1));
+        QFile img(imdbDir.path() + "/" + QCryptographicHash::hash(QByteArray(topicsList.at(currentTopic).title.toLocal8Bit()), QCryptographicHash::Md5).toHex());
+        if (img.exists())
+        {
+            img.open(QIODevice::ReadOnly);
+            topicsList[currentTopic].imdbImage = img.readAll();
+            img.close();
+            currentTopic++;
+            getNextImdb();
+        }
+        else if (!topicsList.at(currentTopic).imdbUrl.isEmpty())
+        {
+            qWait(250);
+            QNetworkRequest req(QUrl(topicsList.at(currentTopic).imdbUrl));
+            qnam.get(req);
+            connect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(getImdbFinished(QNetworkReply*)));
+        }
+        else
+        {
+            currentTopic++;
+            getNextImdb();
+        }
+    }
+}
+
+void RutrackerFetcher::getImdbFinished(QNetworkReply *topicsReply)
+{
+    disconnect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(getImdbFinished(QNetworkReply*)));
+    topicsReply->deleteLater();
+    if (!topicsReply->error())
+    {
+        topicsList[currentTopic].imdbImage = topicsReply->readAll();
+        QFile img(imdbDir.path() + "/" + QCryptographicHash::hash(QByteArray(topicsList.at(currentTopic).title.toLocal8Bit()), QCryptographicHash::Md5).toHex());
+        img.open(QIODevice::WriteOnly);
+        img.write(topicsList.at(currentTopic).imdbImage);
+        img.close();
+    }
+    else
+    {
+        emit stateChanged(QString::fromUtf8("Ошибка загрузки рейтинга IMDB: ") + QString::number(currentTopic + 1));
         qDebug() << topicsReply->errorString();
     }
     currentTopic++;
     getNextImdb();
+}
+
+void RutrackerFetcher::getKinopoisk()
+{
+    currentTopic = 0;
+    if (!topicsList.empty())
+    {
+        getNextKinopoisk();
+    }
+    else
+    {
+        emit gotKinopoisk();
+    }
+}
+
+void RutrackerFetcher::getNextKinopoisk()
+{
+    if (currentTopic > count() - 1)
+    {
+        emit stateChanged(QString::fromUtf8("Рейтинги Kinopoisk загружены"));
+        emit gotKinopoisk();
+    }
+    else
+    {
+        emit stateChanged(QString::fromUtf8("Загрузка рейтинга Kinopoisk: ") + QString::number(currentTopic + 1));
+        QFile img(kinopoiskDir.path() + "/" + QCryptographicHash::hash(QByteArray(topicsList.at(currentTopic).title.toLocal8Bit()), QCryptographicHash::Md5).toHex());
+        if (img.exists())
+        {
+            img.open(QIODevice::ReadOnly);
+            topicsList[currentTopic].kinopoiskImage = img.readAll();
+            img.close();
+            currentTopic++;
+            getNextKinopoisk();
+        }
+        else if (!topicsList.at(currentTopic).kinopoiskUrl.isEmpty())
+        {
+            qWait(250);
+            QNetworkRequest req(QUrl(topicsList.at(currentTopic).kinopoiskUrl));
+            qnam.get(req);
+            connect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(getKinopoiskFinished(QNetworkReply*)));
+        }
+        else
+        {
+            currentTopic++;
+            getNextKinopoisk();
+        }
+    }
+}
+
+void RutrackerFetcher::getKinopoiskFinished(QNetworkReply *topicsReply)
+{
+    disconnect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(getKinopoiskFinished(QNetworkReply*)));
+    topicsReply->deleteLater();
+    if (!topicsReply->error())
+    {
+        topicsList[currentTopic].kinopoiskImage = topicsReply->readAll();
+        QFile img(kinopoiskDir.path() + "/" + QCryptographicHash::hash(QByteArray(topicsList.at(currentTopic).title.toLocal8Bit()), QCryptographicHash::Md5).toHex());
+        img.open(QIODevice::WriteOnly);
+        img.write(topicsList.at(currentTopic).kinopoiskImage);
+        img.close();
+    }
+    else
+    {
+        emit stateChanged(QString::fromUtf8("Ошибка загрузки рейтинга Kinopoisk: ") + QString::number(currentTopic + 1));
+        qDebug() << topicsReply->errorString();
+    }
+    currentTopic++;
+    getNextKinopoisk();
 }
 
 void RutrackerFetcher::parseTopics()
@@ -624,6 +780,17 @@ QString RutrackerFetcher::removeSpans(QString stringToFix)
     if (!stringToFix.contains(QString::fromUtf8("Описание:")) && stringToFix.contains(QString::fromUtf8("Описание")))
         stringToFix.replace(QString::fromUtf8("Описание"), QString::fromUtf8("Описание:"));
 
+    stringToFix.replace("title=\"http://rating.kinopoisk.ru/", "!kinopoisk!https://rating.kinopoisk.ru/");
+    stringToFix.replace("title=\"https://rating.kinopoisk.ru/", "!kinopoisk!https://rating.kinopoisk.ru/");
+    stringToFix.replace("title=\"http://www.kinopoisk.ru/rating/", "!kinopoisk!https://rating.kinopoisk.ru/");
+    stringToFix.replace("title=\"https://www.kinopoisk.ru/rating/", "!kinopoisk!https://rating.kinopoisk.ru/");
+
+    stringToFix.replace("title=\"http://imdb.snick.ru/ratefor/", "!imdb!http://imdb.snick.ru/ratefor/");
+    stringToFix.replace("title=\"https://imdb.snick.ru/ratefor/", "!imdb!http://imdb.snick.ru/ratefor/");
+    stringToFix.replace("title=\"http://tracker.0day.kiev.ua/imdb/", "!imdb!http://tracker.0day.kiev.ua/imdb/");
+    stringToFix.replace("title=\"https://tracker.0day.kiev.ua/imdb/", "!imdb!http://tracker.0day.kiev.ua/imdb/");
+    stringToFix.replace("title=\"http://kinoafisha.ru/upload/btn/", "!imdb!http://kinoafisha.ru/upload/btn/");
+    stringToFix.replace("title=\"https://kinoafisha.ru/upload/btn/", "!imdb!http://kinoafisha.ru/upload/btn/");
     stringToFix.remove(QRegExp("&[^;]*;"));
     stringToFix = stringToFix.simplified();
     return stringToFix;
@@ -807,6 +974,24 @@ void RutrackerFetcher::parseForum(QString postBody, parser postParser)
             endPos = postBody.indexOf(postParser.imageUrlEnd, startPos);
             topicsList[currentTopic].imageUrlFallback = postBody.mid(startPos, endPos - startPos);
         }
+    }
+
+    /* kinopoisk rating url */
+    startPos = postBody.indexOf(postParser.kinopoiskUrlBegin);
+    if (startPos > 0)
+    {
+        startPos = startPos + postParser.kinopoiskUrlBegin.length();
+        endPos = postBody.indexOf(postParser.kinopoiskUrlEnd, startPos);
+        topicsList[currentTopic].kinopoiskUrl = postBody.mid(startPos, endPos - startPos);
+    }
+
+    /* IMDB rating url */
+    startPos = postBody.indexOf(postParser.imdbUrlBegin);
+    if (startPos > 0)
+    {
+        startPos = startPos + postParser.imdbUrlBegin.length();
+        endPos = postBody.indexOf(postParser.imdbUrlEnd, startPos);
+        topicsList[currentTopic].imdbUrl = postBody.mid(startPos, endPos - startPos);
     }
 
     /* quality */

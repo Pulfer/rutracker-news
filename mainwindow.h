@@ -33,6 +33,9 @@ private:
     QVBoxLayout *topicSummaryLayout;
 
     QHBoxLayout *topicSummarySubHLayout;
+    QVBoxLayout *topicSummarySubVLayout;
+
+    QHBoxLayout *ratingsLayout;
 
     QScrollArea *summaryScrollArea;
 
@@ -46,9 +49,12 @@ private:
 
     QLabel *fullTitleLabel;
     QLabel *summaryLabel;
+    QLabel *summaryExtraLabel;
     QLabel *descriptionLabel;
 
     QLabel *imageLabel;
+    QLabel *imdbLabel;
+    QLabel *kinopoiskLabel;
 
 public:
     MainWindow(QWidget *parent = 0);
