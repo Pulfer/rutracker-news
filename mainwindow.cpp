@@ -2,7 +2,7 @@
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
-    setWindowTitle("Rutracker.org news 0.7");
+    setWindowTitle("Rutracker.org news 0.8");
     setMinimumSize(800, 600);
     basicScreen = new QWidget;
     setCentralWidget(basicScreen);
