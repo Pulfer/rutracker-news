@@ -74,11 +74,18 @@ private:
     QStringList searchList;
 
     QNetworkAccessManager qnam;
-    QNetworkReply *reply;
+    QNetworkAccessManager qnamImage;
+    QNetworkAccessManager qnamImdb;
+    QNetworkAccessManager qnamKinopoisk;
+    QNetworkAccessManager qnamOmdb;
 
     int currentPage;
     int pagesCount;
     int currentTopic;
+    int currentImageTopic;
+    int currentImdbTopic;
+    int currentKinopoiskTopic;
+    int currentOmdbTopic;
     int maxTopics;
 
     void setupParsers();
@@ -97,6 +104,9 @@ private:
 
     QString basicUrl;
     bool fetching;
+    bool fetchingImages;
+    bool fetchingImdb;
+    bool fetchingKinopoisk;
     QSettings *settings;
 
     QString accountLogin;
@@ -125,6 +135,7 @@ private slots:
     void getImdb();
     void getKinopoisk();
     void getOmdb();
+    void prepareResult();
     void loginFinished(QNetworkReply*);
     void getTopicFinished(QNetworkReply *topicsReply);
     void parseTopicFinished(QNetworkReply *topicsReply);

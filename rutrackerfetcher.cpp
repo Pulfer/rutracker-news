@@ -37,9 +37,12 @@ RutrackerFetcher::RutrackerFetcher(QObject *parent) : QObject(parent)
 //  There are no free rating providers for now, so skip OMDB ratings
 //  connect(this, SIGNAL(parsedTopics()), this, SLOT(getOmdb()));
 //  connect(this, SIGNAL(gotOmdb()), this, SLOT(getImages()));
+    connect(this, SIGNAL(parsedTopics()), this, SLOT(getImages()));
+    connect(this, SIGNAL(parsedTopics()), this, SLOT(getImdb()));
     connect(this, SIGNAL(parsedTopics()), this, SLOT(getKinopoisk()));
-    connect(this, SIGNAL(gotKinopoisk()), this, SLOT(getImdb()));
-    connect(this, SIGNAL(gotImdb()), this, SLOT(getImages()));
+    connect(this, SIGNAL(gotImages()), this, SLOT(prepareResult()));
+    connect(this, SIGNAL(gotImdb()), this, SLOT(prepareResult()));
+    connect(this, SIGNAL(gotKinopoisk()), this, SLOT(prepareResult()));
 }
 
 void qSleep(int ms)
@@ -379,78 +382,79 @@ void RutrackerFetcher::getTopicFinished(QNetworkReply *topicsReply)
 
 void RutrackerFetcher::getImages()
 {
-    currentTopic = 0;
+    fetchingImages = true;
+    currentImageTopic = 0;
     if (!topicsList.empty())
     {
         getNextImage();
     }
     else
     {
-        emit finished(false);
-        fetching = false;
+        fetchingImages = false;
+        emit gotImages();
     }
 }
 
 void RutrackerFetcher::getNextImage()
 {
-    if (currentTopic > count() - 1)
+    if (currentImageTopic > count() - 1)
     {
         emit stateChanged(QString::fromUtf8("Обложки загружены"));
-        emit finished(true);
-        fetching = false;
+        fetchingImages = false;
+        emit gotImages();
     }
     else
     {
-        emit stateChanged(QString::fromUtf8("Загрузка обложки: ") + QString::number(currentTopic + 1));
-        QFile img(imageDir.path() + "/" + QCryptographicHash::hash(QByteArray(topicsList.at(currentTopic).title.toLocal8Bit()), QCryptographicHash::Md5).toHex());
+        emit stateChanged(QString::fromUtf8("Загрузка обложки: ") + QString::number(currentImageTopic + 1));
+        QFile img(imageDir.path() + "/" + QCryptographicHash::hash(QByteArray(topicsList.at(currentImageTopic).title.toLocal8Bit()), QCryptographicHash::Md5).toHex());
         if (img.exists())
         {
             img.open(QIODevice::ReadOnly);
-            topicsList[currentTopic].image = img.readAll();
+            topicsList[currentImageTopic].image = img.readAll();
             img.close();
-            currentTopic++;
+            currentImageTopic++;
             getNextImage();
         }
         else
         {
             qWait(1000);
-            QNetworkRequest req(QUrl(topicsList.at(currentTopic).imageUrl));
-            qnam.get(req);
-            connect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(getImageFinished(QNetworkReply*)));
+            QNetworkRequest req(QUrl(topicsList.at(currentImageTopic).imageUrl));
+            qnamImage.get(req);
+            connect(&qnamImage, SIGNAL(finished(QNetworkReply*)), this, SLOT(getImageFinished(QNetworkReply*)));
         }
     }
 }
 
 void RutrackerFetcher::getImageFinished(QNetworkReply *topicsReply)
 {
-    disconnect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(getImageFinished(QNetworkReply*)));
+    disconnect(&qnamImage, SIGNAL(finished(QNetworkReply*)), this, SLOT(getImageFinished(QNetworkReply*)));
     topicsReply->deleteLater();
     bool needFallback = false;
     if (!topicsReply->error())
     {
-        topicsList[currentTopic].image = topicsReply->readAll();
+        topicsList[currentImageTopic].image = topicsReply->readAll();
         /* skip 16+ and 18+ images, they are likely to be less than 20000 bytes */
-        if (topicsList.at(currentTopic).image.size() > 20000)
+        if (topicsList.at(currentImageTopic).image.size() > 20000)
         {
-            QFile img(imageDir.path() + "/" + QCryptographicHash::hash(QByteArray(topicsList.at(currentTopic).title.toLocal8Bit()), QCryptographicHash::Md5).toHex());
+            QFile img(imageDir.path() + "/" + QCryptographicHash::hash(QByteArray(topicsList.at(currentImageTopic).title.toLocal8Bit()), QCryptographicHash::Md5).toHex());
             img.open(QIODevice::WriteOnly);
-            img.write(topicsList.at(currentTopic).image);
+            img.write(topicsList.at(currentImageTopic).image);
             img.close();
         }
-        else if (!topicsList.at(currentTopic).imageUrlFallback.isEmpty())
+        else if (!topicsList.at(currentImageTopic).imageUrlFallback.isEmpty())
         {
             needFallback = true;
-            topicsList[currentTopic].imageUrl = topicsList.at(currentTopic).imageUrlFallback;
-            topicsList[currentTopic].imageUrlFallback.clear();
+            topicsList[currentImageTopic].imageUrl = topicsList.at(currentImageTopic).imageUrlFallback;
+            topicsList[currentImageTopic].imageUrlFallback.clear();
         }
     }
     else
     {
-        emit stateChanged(QString::fromUtf8("Ошибка загрузки обложки: ") + QString::number(currentTopic + 1));
+        emit stateChanged(QString::fromUtf8("Ошибка загрузки обложки: ") + QString::number(currentImageTopic + 1));
         qDebug() << topicsReply->errorString();
     }
     if (!needFallback)
-        currentTopic++;
+        currentImageTopic++;
     getNextImage();
 }
 
@@ -461,7 +465,7 @@ void RutrackerFetcher::getOmdb()
     {
         QNetworkProxy::setApplicationProxy(QNetworkProxy::NoProxy);
     }
-    currentTopic = 0;
+    currentOmdbTopic = 0;
     if (!topicsList.empty())
         getNextOmdb();
     else
@@ -470,7 +474,7 @@ void RutrackerFetcher::getOmdb()
 
 void RutrackerFetcher::getNextOmdb()
 {
-    if (currentTopic > count() - 1)
+    if (currentOmdbTopic > count() - 1)
     {
         emit stateChanged(QString::fromUtf8("Поиск рейтингов OMDB завершён"));
         emit gotOmdb();
@@ -478,24 +482,24 @@ void RutrackerFetcher::getNextOmdb()
     else
     {
         qWait(250);
-        emit stateChanged(QString::fromUtf8("Загрузка рейтинга OMDB: ") + QString::number(currentTopic + 1));
-        QString title = topicsList.at(currentTopic).title;
+        emit stateChanged(QString::fromUtf8("Загрузка рейтинга OMDB: ") + QString::number(currentOmdbTopic + 1));
+        QString title = topicsList.at(currentOmdbTopic).title;
         title.remove(0, title.lastIndexOf("/") + 1);
         title = title.simplified();
         QUrl tempUrl;
-        if (topicsList.at(currentTopic).year.length() == 4)
-            tempUrl.setUrl("http://www.omdbapi.com/?t=" + title + "&y=" + topicsList.at(currentTopic).year);
+        if (topicsList.at(currentOmdbTopic).year.length() == 4)
+            tempUrl.setUrl("http://www.omdbapi.com/?t=" + title + "&y=" + topicsList.at(currentOmdbTopic).year);
         else
             tempUrl.setUrl("http://www.omdbapi.com/?t=" + title);
         QNetworkRequest req(tempUrl);
-        qnam.get(req);
-        connect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(getOmdbFinished(QNetworkReply*)));
+        qnamOmdb.get(req);
+        connect(&qnamOmdb, SIGNAL(finished(QNetworkReply*)), this, SLOT(getOmdbFinished(QNetworkReply*)));
     }
 }
 
 void RutrackerFetcher::getOmdbFinished(QNetworkReply *topicsReply)
 {
-    disconnect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(getOmdbFinished(QNetworkReply*)));
+    disconnect(&qnamOmdb, SIGNAL(finished(QNetworkReply*)), this, SLOT(getOmdbFinished(QNetworkReply*)));
     topicsReply->deleteLater();
     if (!topicsReply->error())
     {
@@ -506,60 +510,63 @@ void RutrackerFetcher::getOmdbFinished(QNetworkReply *topicsReply)
         {
             startPos = startPos + 14;
             int endPos = temp.indexOf("\"", startPos);
-            topicsList[currentTopic].omdb = temp.mid(startPos, endPos - startPos);
+            topicsList[currentOmdbTopic].omdb = temp.mid(startPos, endPos - startPos);
         }
     }
     else
     {
-        emit stateChanged(QString::fromUtf8("Ошибка загрузки рейтинга OMDB: ") + QString::number(currentTopic) + 1);
+        emit stateChanged(QString::fromUtf8("Ошибка загрузки рейтинга OMDB: ") + QString::number(currentOmdbTopic) + 1);
         qDebug() << topicsReply->errorString();
     }
-    currentTopic++;
+    currentOmdbTopic++;
     getNextOmdb();
 }
 
 void RutrackerFetcher::getImdb()
 {
-    currentTopic = 0;
+    fetchingImdb = true;
+    currentImdbTopic = 0;
     if (!topicsList.empty())
     {
         getNextImdb();
     }
     else
     {
+        fetchingImdb = false;
         emit gotImdb();
     }
 }
 
 void RutrackerFetcher::getNextImdb()
 {
-    if (currentTopic > count() - 1)
+    if (currentImdbTopic > count() - 1)
     {
         emit stateChanged(QString::fromUtf8("Рейтинги IMDB загружены"));
+        fetchingImdb = false;
         emit gotImdb();
     }
     else
     {
-        emit stateChanged(QString::fromUtf8("Загрузка рейтинга IMDB: ") + QString::number(currentTopic + 1));
-        QFile img(imdbDir.path() + "/" + QCryptographicHash::hash(QByteArray(topicsList.at(currentTopic).title.toLocal8Bit()), QCryptographicHash::Md5).toHex());
+        emit stateChanged(QString::fromUtf8("Загрузка рейтинга IMDB: ") + QString::number(currentImdbTopic + 1));
+        QFile img(imdbDir.path() + "/" + QCryptographicHash::hash(QByteArray(topicsList.at(currentImdbTopic).title.toLocal8Bit()), QCryptographicHash::Md5).toHex());
         if (img.exists())
         {
             img.open(QIODevice::ReadOnly);
-            topicsList[currentTopic].imdbImage = img.readAll();
+            topicsList[currentImdbTopic].imdbImage = img.readAll();
             img.close();
-            currentTopic++;
+            currentImdbTopic++;
             getNextImdb();
         }
-        else if (!topicsList.at(currentTopic).imdbUrl.isEmpty())
+        else if (!topicsList.at(currentImdbTopic).imdbUrl.isEmpty())
         {
             qWait(250);
-            QNetworkRequest req(QUrl(topicsList.at(currentTopic).imdbUrl));
-            qnam.get(req);
-            connect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(getImdbFinished(QNetworkReply*)));
+            QNetworkRequest req(QUrl(topicsList.at(currentImdbTopic).imdbUrl));
+            qnamImdb.get(req);
+            connect(&qnamImdb, SIGNAL(finished(QNetworkReply*)), this, SLOT(getImdbFinished(QNetworkReply*)));
         }
         else
         {
-            currentTopic++;
+            currentImdbTopic++;
             getNextImdb();
         }
     }
@@ -567,67 +574,70 @@ void RutrackerFetcher::getNextImdb()
 
 void RutrackerFetcher::getImdbFinished(QNetworkReply *topicsReply)
 {
-    disconnect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(getImdbFinished(QNetworkReply*)));
+    disconnect(&qnamImdb, SIGNAL(finished(QNetworkReply*)), this, SLOT(getImdbFinished(QNetworkReply*)));
     topicsReply->deleteLater();
     if (!topicsReply->error())
     {
-        topicsList[currentTopic].imdbImage = topicsReply->readAll();
-        QFile img(imdbDir.path() + "/" + QCryptographicHash::hash(QByteArray(topicsList.at(currentTopic).title.toLocal8Bit()), QCryptographicHash::Md5).toHex());
+        topicsList[currentImdbTopic].imdbImage = topicsReply->readAll();
+        QFile img(imdbDir.path() + "/" + QCryptographicHash::hash(QByteArray(topicsList.at(currentImdbTopic).title.toLocal8Bit()), QCryptographicHash::Md5).toHex());
         img.open(QIODevice::WriteOnly);
-        img.write(topicsList.at(currentTopic).imdbImage);
+        img.write(topicsList.at(currentImdbTopic).imdbImage);
         img.close();
     }
     else
     {
-        emit stateChanged(QString::fromUtf8("Ошибка загрузки рейтинга IMDB: ") + QString::number(currentTopic + 1));
+        emit stateChanged(QString::fromUtf8("Ошибка загрузки рейтинга IMDB: ") + QString::number(currentImdbTopic + 1));
         qDebug() << topicsReply->errorString();
     }
-    currentTopic++;
+    currentImdbTopic++;
     getNextImdb();
 }
 
 void RutrackerFetcher::getKinopoisk()
 {
-    currentTopic = 0;
+    fetchingKinopoisk = true;
+    currentKinopoiskTopic = 0;
     if (!topicsList.empty())
     {
         getNextKinopoisk();
     }
     else
     {
+        fetchingKinopoisk = false;
         emit gotKinopoisk();
     }
 }
 
 void RutrackerFetcher::getNextKinopoisk()
 {
-    if (currentTopic > count() - 1)
+    if (currentKinopoiskTopic > count() - 1)
     {
         emit stateChanged(QString::fromUtf8("Рейтинги Kinopoisk загружены"));
+        fetchingKinopoisk = false;
         emit gotKinopoisk();
     }
     else
     {
-        emit stateChanged(QString::fromUtf8("Загрузка рейтинга Kinopoisk: ") + QString::number(currentTopic + 1));
-        QFile img(kinopoiskDir.path() + "/" + QCryptographicHash::hash(QByteArray(topicsList.at(currentTopic).title.toLocal8Bit()), QCryptographicHash::Md5).toHex());
+        emit stateChanged(QString::fromUtf8("Загрузка рейтинга Kinopoisk: ") + QString::number(currentKinopoiskTopic + 1));
+        QFile img(kinopoiskDir.path() + "/" + QCryptographicHash::hash(QByteArray(topicsList.at(currentKinopoiskTopic).title.toLocal8Bit()), QCryptographicHash::Md5).toHex());
         if (img.exists())
         {
             img.open(QIODevice::ReadOnly);
-            topicsList[currentTopic].kinopoiskImage = img.readAll();
+            topicsList[currentKinopoiskTopic].kinopoiskImage = img.readAll();
             img.close();
-            currentTopic++;
+            currentKinopoiskTopic++;
             getNextKinopoisk();
         }
-        else if (!topicsList.at(currentTopic).kinopoiskUrl.isEmpty())
+        else if (!topicsList.at(currentKinopoiskTopic).kinopoiskUrl.isEmpty())
         {
             qWait(250);
-            QNetworkRequest req(QUrl(topicsList.at(currentTopic).kinopoiskUrl));
-            qnam.get(req);
-            connect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(getKinopoiskFinished(QNetworkReply*)));
+            QNetworkRequest req(QUrl(topicsList.at(currentKinopoiskTopic).kinopoiskUrl));
+            qnamKinopoisk.get(req);
+            connect(&qnamKinopoisk, SIGNAL(finished(QNetworkReply*)), this, SLOT(getKinopoiskFinished(QNetworkReply*)));
         }
         else
         {
-            currentTopic++;
+            currentKinopoiskTopic++;
             getNextKinopoisk();
         }
     }
@@ -635,22 +645,22 @@ void RutrackerFetcher::getNextKinopoisk()
 
 void RutrackerFetcher::getKinopoiskFinished(QNetworkReply *topicsReply)
 {
-    disconnect(&qnam, SIGNAL(finished(QNetworkReply*)), this, SLOT(getKinopoiskFinished(QNetworkReply*)));
+    disconnect(&qnamKinopoisk, SIGNAL(finished(QNetworkReply*)), this, SLOT(getKinopoiskFinished(QNetworkReply*)));
     topicsReply->deleteLater();
     if (!topicsReply->error())
     {
-        topicsList[currentTopic].kinopoiskImage = topicsReply->readAll();
-        QFile img(kinopoiskDir.path() + "/" + QCryptographicHash::hash(QByteArray(topicsList.at(currentTopic).title.toLocal8Bit()), QCryptographicHash::Md5).toHex());
+        topicsList[currentKinopoiskTopic].kinopoiskImage = topicsReply->readAll();
+        QFile img(kinopoiskDir.path() + "/" + QCryptographicHash::hash(QByteArray(topicsList.at(currentKinopoiskTopic).title.toLocal8Bit()), QCryptographicHash::Md5).toHex());
         img.open(QIODevice::WriteOnly);
-        img.write(topicsList.at(currentTopic).kinopoiskImage);
+        img.write(topicsList.at(currentKinopoiskTopic).kinopoiskImage);
         img.close();
     }
     else
     {
-        emit stateChanged(QString::fromUtf8("Ошибка загрузки рейтинга Kinopoisk: ") + QString::number(currentTopic + 1));
+        emit stateChanged(QString::fromUtf8("Ошибка загрузки рейтинга Kinopoisk: ") + QString::number(currentKinopoiskTopic + 1));
         qDebug() << topicsReply->errorString();
     }
-    currentTopic++;
+    currentKinopoiskTopic++;
     getNextKinopoisk();
 }
 
@@ -1087,6 +1097,15 @@ void RutrackerFetcher::parseForum(QString postBody, parser postParser)
     if (!topicsList[currentTopic].description.isEmpty())
     {
         topicsList[currentTopic].description = fixString(topicsList[currentTopic].description);
+    }
+}
+
+void RutrackerFetcher::prepareResult()
+{
+    if (!fetchingImages && !fetchingImdb && !fetchingKinopoisk)
+    {
+        emit finished(true);
+        fetching = false;
     }
 }
 
