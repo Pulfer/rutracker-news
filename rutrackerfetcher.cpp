@@ -801,6 +801,7 @@ QString RutrackerFetcher::removeSpans(QString stringToFix)
     stringToFix.replace("title=\"https://tracker.0day.kiev.ua/imdb/", "!imdb!http://tracker.0day.kiev.ua/imdb/");
     stringToFix.replace("title=\"http://kinoafisha.ru/upload/btn/", "!imdb!http://kinoafisha.ru/upload/btn/");
     stringToFix.replace("title=\"https://kinoafisha.ru/upload/btn/", "!imdb!http://kinoafisha.ru/upload/btn/");
+    stringToFix.replace("title=\"http://kinoafisha.ru/ratingi", "!imdb!http://kinoafisha.ru/ratingi");
     stringToFix.remove(QRegExp("&[^;]*;"));
     stringToFix = stringToFix.simplified();
     return stringToFix;
